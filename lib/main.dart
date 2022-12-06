@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 void main() {
@@ -31,7 +33,7 @@ class MyApp extends StatelessWidget {
 
 class MainPage extends StatelessWidget {
   MainPage({super.key});
-  final ValueNotifier<List<String>> _valueNotifier = ValueNotifier([]);
+  final ValueNotifier<List<String>> _valueNotifier = ValueNotifier([" "]);
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -42,9 +44,9 @@ class MainPage extends StatelessWidget {
         valueListenable: _valueNotifier,
         builder: (context, value, child) {
           return ListView.builder(
-            itemCount: value.length + 1,
+            itemCount: value.length,
             itemBuilder: (context, index) {
-              return index == value.length
+              return index == value.length - 1
                   ? ListTile(
                       title: TextFormField(
                         autofocus: true,
@@ -54,17 +56,23 @@ class MainPage extends StatelessWidget {
                             value
                           ];
                         },
+                        onChanged: (value) {
+                          if (validateCode(value)) {
+                            insertNewCode(value);
+                          }
+                        },
                       ),
                     )
                   : ListTile(
                       title: TextFormField(
                         initialValue: value[index],
+                        readOnly: true,
                         onFieldSubmitted: (value) {
-                          _valueNotifier.value = [
-                            ..._valueNotifier.value.sublist(0, index),
-                            value,
-                            ..._valueNotifier.value.sublist(index + 1)
-                          ];
+                          // _valueNotifier.value = [
+                          //   ..._valueNotifier.value.sublist(0, index),
+                          //   value,
+                          //   ..._valueNotifier.value.sublist(index + 1)
+                          // ];
                         },
                       ),
                     );
@@ -74,4 +82,35 @@ class MainPage extends StatelessWidget {
       ),
     );
   }
+
+  Timer? _timer;
+  void insertNewCode(String newCode) {
+    final codes = [..._valueNotifier.value];
+    final previousCodes = codes.last;
+    //replace the last code if have identical code with prefix newCode
+    //else add newCode to the end of the list
+    if (newCode.startsWith(previousCodes)) {
+      _timer?.cancel();
+      _timer = null;
+      codes[codes.indexOf(previousCodes)] = newCode;
+      _timer = Timer(Duration(milliseconds: 500), () {
+        codes.add(" ");
+        _timer = null;
+      });
+    } else {
+      codes.add(newCode);
+    }
+  }
+}
+
+bool validateCode(String code) {
+  // example of code : 2212T00252K-AMB2311-10329
+  // example of code : 2212T00269K-AMB2311-07693
+  // using regex to validate squence of code with minium length is 15
+  // and 2 chars at first is digit of year and next 2 chars is digit of month
+  // and contains one K- and next of K- is 3 chars is capital letter
+
+  RegExp regExp = RegExp(r"^\d{2}\d{2}T\d{5}K-[A-Z]{3}\d{4}");
+
+  return regExp.hasMatch(code);
 }
