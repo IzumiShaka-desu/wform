@@ -26,14 +26,34 @@ class MyApp extends StatelessWidget {
         // is not restarted.
         primarySwatch: Colors.blue,
       ),
-      home: MainPage(),
+      home: const MainPage(),
     );
   }
 }
 
-class MainPage extends StatelessWidget {
-  MainPage({super.key});
+class MainPage extends StatefulWidget {
+  const MainPage({super.key});
+
+  @override
+  State<MainPage> createState() => _MainPageState();
+}
+
+class _MainPageState extends State<MainPage> {
   final ValueNotifier<List<String>> _valueNotifier = ValueNotifier([" "]);
+  late final TextEditingController _controller;
+
+  @override
+  void initState() {
+    _controller = TextEditingController();
+    super.initState();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -50,11 +70,22 @@ class MainPage extends StatelessWidget {
                   ? ListTile(
                       title: TextFormField(
                         autofocus: true,
+                        controller: _controller,
                         onFieldSubmitted: (value) {
                           _valueNotifier.value = [
                             ..._valueNotifier.value,
                             value
                           ];
+                        },
+                        onEditingComplete: () {
+                          if (validateCode(_controller.text)) {
+                            _valueNotifier.value = [
+                              ..._valueNotifier.value,
+                              _controller.text,
+                              " "
+                            ];
+                            _controller.clear();
+                          } else {}
                         },
                         onChanged: (value) {
                           if (validateCode(value)) {
@@ -84,6 +115,7 @@ class MainPage extends StatelessWidget {
   }
 
   Timer? _timer;
+
   void insertNewCode(String newCode) {
     final codes = [..._valueNotifier.value];
     final previousCodes = codes.last;
@@ -93,7 +125,7 @@ class MainPage extends StatelessWidget {
       _timer?.cancel();
       _timer = null;
       codes[codes.indexOf(previousCodes)] = newCode;
-      _timer = Timer(Duration(milliseconds: 500), () {
+      _timer = Timer(const Duration(milliseconds: 500), () {
         codes.add(" ");
         _timer = null;
       });
